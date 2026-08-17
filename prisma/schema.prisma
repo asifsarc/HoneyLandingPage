@@ -1,0 +1,134 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model AdminUser {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         String   @default("ADMIN")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Package {
+  id           String   @id @default(cuid())
+  slug         String   @unique
+  name         String
+  weight       String
+  regularPrice Float
+  salePrice    Float
+  badgeText    String?
+  freeGiftText String?
+  freeDelivery Boolean  @default(false)
+  freeGift     Boolean  @default(false)
+  popular      Boolean  @default(false)
+  bestValue    Boolean  @default(false)
+  features     String   @default("[]") // JSON stringified array of feature bullets
+  isActive     Boolean  @default(true)
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  orders Order[]
+}
+
+model Customer {
+  id            String    @id @default(cuid())
+  name          String
+  phone         String    @unique
+  address       String?
+  totalOrders   Int       @default(0)
+  totalSpent    Float     @default(0)
+  lastOrderDate DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  orders Order[]
+}
+
+model Order {
+  id               String    @id @default(cuid())
+  orderNumber      String    @unique
+  customerName     String
+  phone            String
+  deliveryArea     String    // "inside_dhaka" | "outside_dhaka"
+  shippingAddress  String
+  notes            String?
+  packageId        String
+  package          Package   @relation(fields: [packageId], references: [id])
+  quantity         Int       @default(1)
+  subTotal         Float
+  shippingCost     Float
+  totalAmount      Float
+  status           String    @default("PENDING") // PENDING, CONFIRMED, PROCESSING, SHIPPED, DELIVERED, CANCELLED, RETURNED
+  
+  // Tracking & Courier Setup Fields
+  courierProvider  String    @default("STEADFAST") // STEADFAST, PATHAO, REDX, PAPERFLY, SUNDARBAN_COURIER, SA_PARIBAHAN, MANUAL_OTHER
+  trackingCode     String?   // Admin manual input or auto-generated
+  consignmentId    String?   // Courier Consignment/CID
+  trackingUrl      String?   // Clickable direct tracking link
+  courierNotes     String?   // Internal dispatch/courier notes
+  shippedAt        DateTime? // Timestamp when parcel was handed over to courier
+
+  customerId       String?
+  customer         Customer? @relation(fields: [customerId], references: [id])
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+model Review {
+  id               String   @id @default(cuid())
+  name             String
+  location         String
+  role             String?  // e.g. "চিকিৎসক ও নিয়মিত গ্রাহক", "গৃহিণী"
+  rating           Int      @default(5)
+  reviewText       String
+  packagePurchased String?  // e.g. "১ কেজি প্রিমিয়াম জার"
+  isVerified       Boolean  @default(true)
+  isActive         Boolean  @default(true)
+  sortOrder        Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model SiteSettings {
+  id                         String   @id @default("default")
+  videoUrl                   String   @default("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+  helplineNumber             String   @default("০১৭১১-XXXXXX")
+  supportEmail               String   @default("support@sundarbannaturals.com")
+  stockCounter               String   @default("স্টকে বাকি মাত্র ১৭ টি জার")
+  deliveryChargeInsideDhaka  Float    @default(70)
+  deliveryChargeOutsideDhaka Float    @default(130)
+  announcementText           String   @default("সীমিত অফার: আজকের অর্ডারে কাঠের মধু চামচ ফ্রি + বিশেষ ছাড়!")
+  updatedAt                  DateTime @updatedAt
+}
+
+model MarketingSettings {
+  id                      String   @id @default("default")
+  
+  // Google Tracking
+  gtmContainerId          String?  // e.g. GTM-XXXXXXX
+  ga4MeasurementId        String?  // e.g. G-XXXXXXX
+  
+  // Meta / Facebook Tracking
+  fbPixelId               String?  // e.g. 123456789012345
+  metaCapiAccessToken     String?  // Meta Conversions API Access Token
+  metaTestEventCode       String?  // For CAPI test events
+  
+  // TikTok / Other Ad Platforms
+  tiktokPixelId           String?  // e.g. CXXXXXXXXXXXX
+  
+  // Custom Script Injections
+  customHeadScripts       String?  // Injected inside <head>...</head>
+  customBodyStartScripts  String?  // Injected right after opening <body>
+  customBodyEndScripts    String?  // Injected right before closing </body>
+  
+  updatedAt               DateTime @updatedAt
+}
